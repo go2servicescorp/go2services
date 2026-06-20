@@ -7,6 +7,7 @@ export function FormField({
   required = false,
   pattern,
   rows = 4,
+  placeholder,
   onChange,
 }: {
   label: string;
@@ -15,6 +16,7 @@ export function FormField({
   required?: boolean;
   pattern?: string;
   rows?: number;
+  placeholder?: string;
   onChange?: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
@@ -77,6 +79,7 @@ export function FormField({
           name={name}
           required={required}
           rows={rows}
+          placeholder={placeholder}
           onChange={handleChange}
           onInvalid={handleInvalid}
         />
@@ -87,6 +90,7 @@ export function FormField({
           required={required}
           type={type}
           pattern={pattern}
+          placeholder={placeholder}
           onChange={handleChange}
           onInvalid={handleInvalid}
         />

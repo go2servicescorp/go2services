@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Phone, Mail, Send } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaInstagram } from "react-icons/fa";
+import { ContactUs } from "@/components/contact/contact-us";
 
 const socials = [
   {
@@ -120,91 +121,7 @@ export default function Contact() {
             </button>
           </div>
         ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="w-full max-w-md flex flex-col gap-5"
-          >
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="name"
-                className="text-xs uppercase tracking-[1.5px] text-[#8a7f72]"
-              >
-                Your Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-xl border border-[#ddd5c8] bg-white text-sm text-[#1a1410] placeholder:text-[#ccc] outline-none focus:border-[#0ABDAD] focus:ring-2 focus:ring-[#0ABDAD]/20 transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="email"
-                className="text-xs uppercase tracking-[1.5px] text-[#8a7f72]"
-              >
-                Email <span className="text-[#0ABDAD]">*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={handleChange}
-                placeholder="john@email.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#ddd5c8] bg-white text-sm text-[#1a1410] placeholder:text-[#ccc] outline-none focus:border-[#0ABDAD] focus:ring-2 focus:ring-[#0ABDAD]/20 transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="subject"
-                className="text-xs uppercase tracking-[1.5px] text-[#8a7f72]"
-              >
-                Subject
-              </label>
-              <input
-                id="subject"
-                name="subject"
-                type="text"
-                value={form.subject}
-                onChange={handleChange}
-                placeholder="How can we help?"
-                className="w-full px-4 py-3 rounded-xl border border-[#ddd5c8] bg-white text-sm text-[#1a1410] placeholder:text-[#ccc] outline-none focus:border-[#0ABDAD] focus:ring-2 focus:ring-[#0ABDAD]/20 transition-all"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="message"
-                className="text-xs uppercase tracking-[1.5px] text-[#8a7f72]"
-              >
-                Message
-              </label>
-              <textarea
-                id="message"
-                name="message"
-                rows={5}
-                value={form.message}
-                onChange={handleChange}
-                placeholder="Tell us more..."
-                className="w-full px-4 py-3 rounded-xl border border-[#ddd5c8] bg-white text-sm text-[#1a1410] placeholder:text-[#ccc] outline-none focus:border-[#0ABDAD] focus:ring-2 focus:ring-[#0ABDAD]/20 transition-all resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0ABDAD] text-white text-sm font-semibold hover:bg-[#09a89a] active:scale-[0.98] transition-all"
-            >
-              <Send size={16} />
-              Send Message
-            </button>
-          </form>
+          <ContactUs setSubmitted={setSubmitted} />
         )}
       </section>
     </main>

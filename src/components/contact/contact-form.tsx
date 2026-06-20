@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FormField } from "../form/form-field";
 
 export function ContactForm({ roomName }: { roomName: string }) {
-  const [sent, setSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [fields, setFields] = useState({
     fullName: "",
@@ -23,21 +23,30 @@ export function ContactForm({ roomName }: { roomName: string }) {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    // Here you would typically send the data to your server
-    console.log("Form submitted:", { ...fields, room: roomName });
-    const filledFields = { ...fields, room: roomName };
-    const response = await fetch("/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(filledFields),
-    });
+    setIsSubmitting(true);
 
-    if (response.ok) {
+    const filledFields = { ...fields, room: roomName };
+
+    try {
+      const response = await fetch("/api/contact/form", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(filledFields),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send contact form");
+      }
+
       alert("Email enviado!");
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível enviar o email. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
-    setSent(true);
   }
 
   return (
@@ -90,11 +99,18 @@ export function ContactForm({ roomName }: { roomName: string }) {
         }}
       />
       <button
-        className="mt-2 w-full rounded px-4 py-3 text-sm font-black uppercase tracking-[1px] text-white transition disabled:cursor-not-allowed disabled:opacity-40 bg-[#0ABDAD] hover:bg-[#079b8d] disabled:hover:bg-[#0ABDAD]"
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-black uppercase tracking-[1px] text-white transition disabled:cursor-not-allowed disabled:opacity-40 bg-[#0ABDAD] hover:bg-[#079b8d] disabled:hover:bg-[#0ABDAD]"
         type="submit"
-        disabled={!canSubmit}
+        disabled={!canSubmit || isSubmitting}
       >
-        Send request
+        {isSubmitting ? (
+          <>
+            <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            Sending...
+          </>
+        ) : (
+          "Send request"
+        )}
       </button>
     </form>
   );
