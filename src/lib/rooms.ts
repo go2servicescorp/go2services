@@ -2,6 +2,8 @@ import {
   extractDriveFolderId,
   getDriveAuth,
   getDriveFolderImages,
+  getServiceAccountAccessToken,
+  getServiceAccountClientEmail,
 } from "./drive";
 
 export type RoomRecord = {
@@ -36,24 +38,46 @@ export async function getRooms() {
       throw new Error(`Fonte externa retornou HTTP ${res.status}`);
     }
 
-    return addDriveImages(normalizeRooms(await res.json()));
+    return sortActiveRoomsFirst(
+      await addDriveImages(normalizeRooms(await res.json())),
+    );
   }
 
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const apiKey = process.env.GOOGLE_API_KEY;
   const range = process.env.GOOGLE_SHEET_RANGE || "Página1!A1:Z100";
 
-  if (!sheetId || !apiKey) {
+  if (!sheetId) {
     throw new Error(
-      "Configure ROOM_LISTINGS_API_URL ou GOOGLE_SHEET_ID e GOOGLE_API_KEY.",
+      "Configure ROOM_LISTINGS_API_URL ou GOOGLE_SHEET_ID.",
     );
   }
 
+  const headers = new Headers();
+  const params = new URLSearchParams();
+
+  if (getServiceAccountClientEmail()) {
+    headers.set(
+      "Authorization",
+      `Bearer ${await getServiceAccountAccessToken([
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+      ])}`,
+    );
+  } else if (apiKey) {
+    params.set("key", apiKey);
+  } else {
+    throw new Error(
+      "Configure ROOM_LISTINGS_API_URL, GOOGLE_SERVICE_ACCOUNT_JSON ou GOOGLE_API_KEY.",
+    );
+  }
+
+  const query = params.toString();
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
     range,
-  )}?key=${apiKey}`;
+  )}${query ? `?${query}` : ""}`;
 
   const res = await fetch(url, {
+    headers,
     next: { revalidate: 86400 },
   });
 
@@ -61,7 +85,9 @@ export async function getRooms() {
     throw new Error(`Google Sheets retornou HTTP ${res.status}`);
   }
 
-  return addDriveImages(normalizeRooms(await res.json()));
+  return sortActiveRoomsFirst(
+    await addDriveImages(normalizeRooms(await res.json())),
+  );
 }
 
 export function normalizeRooms(data: unknown): RoomRecord[] {
@@ -130,6 +156,17 @@ function getStringField(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sortActiveRoomsFirst(rooms: RoomRecord[]) {
+  return rooms.toSorted(
+    (a, b) => Number(isActiveRoom(b)) - Number(isActiveRoom(a)),
+  );
+}
+
+function isActiveRoom(room: RoomRecord) {
+  const value = getStringField(room.available || room.Available).toLowerCase();
+  return value === "available" || value === "yes" || value === "true";
 }
 
 async function addDriveImages(rooms: RoomRecord[]) {

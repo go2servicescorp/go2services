@@ -105,7 +105,7 @@ export async function getDriveFolderImages(folderId: string, auth: DriveAuth) {
     .map<DriveImage>((file) => ({
       id: file.id,
       name: file.name,
-      thumbnailUrl: `/api/drive-image/${file.id}`,
+      thumbnailUrl: `/api/drive-image/${file.id}?size=thumb`,
       viewUrl: file.webViewLink,
     }));
 }
@@ -168,7 +168,9 @@ export async function getDriveFileThumbnailLink(
   return data.thumbnailLink || "";
 }
 
-export async function getServiceAccountAccessToken() {
+export async function getServiceAccountAccessToken(
+  scopes = ["https://www.googleapis.com/auth/drive.readonly"],
+) {
   const credentials = getServiceAccountCredentials();
   if (!credentials) return "";
 
@@ -179,7 +181,7 @@ export async function getServiceAccountAccessToken() {
     exp: now + 3600,
     iat: now,
     iss: credentials.clientEmail,
-    scope: "https://www.googleapis.com/auth/drive.readonly",
+    scope: scopes.join(" "),
   });
   const unsignedJwt = `${header}.${payload}`;
   const signer = createSign("RSA-SHA256");

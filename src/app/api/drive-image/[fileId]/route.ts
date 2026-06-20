@@ -5,13 +5,15 @@ import {
   getDriveThumbnailUrl,
 } from "@/lib/drive";
 
+const thumbnailCache = new Map<string, string>();
+
 export async function GET(
   request: Request,
   context: RouteContext<"/api/drive-image/[fileId]">,
 ) {
   const { fileId } = await context.params;
   const { searchParams } = new URL(request.url);
-  const size = searchParams.get("size") === "thumb" ? 600 : 2200;
+  const size = getImageSize(searchParams.get("size"));
   const auth = await getDriveAuth();
 
   if (!auth) {
@@ -21,9 +23,15 @@ export async function GET(
     );
   }
 
-  const thumbnailLink =
-    (await getDriveFileThumbnailLink(fileId, auth)) ||
-    getDriveThumbnailUrl(fileId, size);
+  // Usa cache ou busca uma única vez por fileId
+  let thumbnailLink = thumbnailCache.get(fileId);
+  if (!thumbnailLink) {
+    thumbnailLink =
+      (await getDriveFileThumbnailLink(fileId, auth)) ||
+      getDriveThumbnailUrl(fileId, size);
+
+    if (thumbnailLink) thumbnailCache.set(fileId, thumbnailLink);
+  }
 
   if (!thumbnailLink) {
     return NextResponse.json(
@@ -33,7 +41,9 @@ export async function GET(
   }
 
   const imageUrl = resizeDriveThumbnailUrl(thumbnailLink, size);
-  const imageRes = await fetch(imageUrl);
+  const imageRes = await fetch(imageUrl, {
+    next: { revalidate: 604800 }, // Next.js cacheia o fetch por 7 dias
+  });
 
   if (!imageRes.ok) {
     return NextResponse.json(
@@ -48,9 +58,16 @@ export async function GET(
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600, s-maxage=86400",
+      "Cache-Control":
+        "public, max-age=604800, s-maxage=604800, stale-while-revalidate=86400",
     },
   });
+}
+
+function getImageSize(size: string | null) {
+  if (size === "thumb") return 500;
+  if (size === "gallery") return 900;
+  return 900;
 }
 
 function resizeDriveThumbnailUrl(url: string, size: number) {

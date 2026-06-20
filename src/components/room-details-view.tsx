@@ -31,7 +31,7 @@ type DriveFolderResponse = {
 
 type ImageGroup = "room" | "house";
 
-const CACHE_KEY = "room_data_v3";
+const CACHE_KEY = "room_data_v7";
 
 const detailFields = [
   ["Area", "Area"],
@@ -42,6 +42,7 @@ const detailFields = [
   ["Couples move-in", "Couples move-in"],
   ["People sharing house", "Number of people sharing a house"],
   ["People sharing bathroom", "Number of people sharing the bathroom"],
+  ["Description", "Description"],
 ] as const;
 
 function useIsDesktop() {
@@ -93,19 +94,13 @@ export function RoomDetailsView({
         return;
       }
 
-      if (!token) {
-        setError(
-          "Room details are unavailable. Please open this room from the listings page.",
-        );
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const res = await fetch(
-          `/api/rooms?token=${encodeURIComponent(token)}`,
-          { headers: { "ngrok-skip-browser-warning": "true" } },
-        );
+        const roomsUrl = token
+          ? `/api/rooms?token=${encodeURIComponent(token)}`
+          : "/api/rooms";
+        const res = await fetch(roomsUrl, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
         const data = (await res.json()) as RoomsResponse;
 
         if (!res.ok)
@@ -220,14 +215,19 @@ export function RoomDetailsView({
       {images[activeGroup].length === 0 ? (
         <div className="h-72 w-full animate-pulse rounded-lg bg-[#ddd5c8]" />
       ) : (
-        <ImageSwiper room={room} roomId={roomId} activeGroup={activeGroup} />
+        <ImageSwiper
+          key={activeGroup}
+          room={room}
+          roomId={roomId}
+          activeGroup={activeGroup}
+        />
       )}
     </>
   );
 
   const detailsBlock = (
     <div className="flex flex-col gap-6">
-      {field(room, "Description") ? (
+      {/* {field(room, "Description") ? (
         <section className="rounded-lg border border-[#d8ebe8] bg-white p-5">
           <div className="mb-2 text-[10px] font-bold uppercase tracking-[1.5px] text-[#8a7f72]">
             Description
@@ -236,7 +236,7 @@ export function RoomDetailsView({
             {field(room, "Description")}
           </p>
         </section>
-      ) : null}
+      ) : null} */}
 
       <div className="grid gap-px overflow-hidden rounded-lg border border-[#d8ebe8] bg-white sm:grid-cols-2 lg:grid-cols-3">
         {detailFields.map(([label, key]) => (

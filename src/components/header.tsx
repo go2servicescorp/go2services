@@ -31,8 +31,8 @@ export function Header() {
           alt="Go2Rent"
           width={100}
           height={100}
-          loading="lazy"
-          className="cursor-pointer"
+          className="cursor-pointer w-auto"
+          priority
           onClick={() => router.push("/")}
         />
 

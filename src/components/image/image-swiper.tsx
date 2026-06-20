@@ -4,10 +4,11 @@ import { DriveImage } from "@/lib/drive";
 import { field } from "@/lib/room-utils";
 import { RoomRecord } from "@/types/rooms";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SliderButton } from "./slider-button";
 
 type ImageGroup = "room" | "house";
+
 export function getImageGroups(
   room: RoomRecord | null,
 ): Record<ImageGroup, DriveImage[]> {
@@ -58,10 +59,25 @@ function isDriveFileId(value: string) {
 
 function getFullImageUrl(image: DriveImage) {
   if (isDriveFileId(image.id)) {
-    return `/api/drive-image/${encodeURIComponent(image.id)}`;
+    return `/api/drive-image/${encodeURIComponent(image.id)}?size=gallery`;
   }
 
-  return image.thumbnailUrl.replace("?size=thumb", "");
+  if (image.thumbnailUrl.startsWith("/api/drive-image/")) {
+    return image.thumbnailUrl.includes("?")
+      ? image.thumbnailUrl.replace(/([?&])size=[^&]*/, "$1size=gallery")
+      : `${image.thumbnailUrl}?size=gallery`;
+  }
+
+  return image.thumbnailUrl;
+}
+
+function isSlowConnection() {
+  const conn = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  return conn?.saveData || conn?.effectiveType?.includes("2g");
 }
 
 export function ImageSwiper({
@@ -75,9 +91,44 @@ export function ImageSwiper({
 }) {
   const decodedRoomId = decodeURIComponent(roomId);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const images = useMemo(() => getImageGroups(room), [room]);
   const activeImages = images[activeGroup];
   const activeImage = activeImages[activeIndex] || null;
+
+  const navigate = useCallback((next: number) => {
+    setHasInteracted(true);
+    setActiveIndex(next);
+  }, []);
+
+  // Preload das vizinhas após primeira interação
+  useEffect(() => {
+    if (!hasInteracted || isSlowConnection()) return;
+
+    const neighbors = [
+      activeImages[activeIndex + 1],
+      activeImages[activeIndex - 1],
+    ].filter(Boolean) as DriveImage[];
+
+    const links = neighbors.map((img) => {
+      const href = getFullImageUrl(img);
+      if (document.querySelector(`link[rel="preload"][href="${href}"]`)) {
+        return null;
+      }
+
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = href;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    return () => {
+      links.forEach((link) => link?.remove());
+    };
+  }, [activeIndex, activeImages, hasInteracted]);
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-[#aee9e3] bg-[#f5f0e8]">
       <div className="relative aspect-[4/3] w-full sm:aspect-[16/10]">
@@ -88,7 +139,8 @@ export function ImageSwiper({
             fill
             sizes="(min-width: 1024px) 62vw, 100vw"
             className="object-cover"
-            loading="lazy"
+            loading={activeIndex === 0 ? "eager" : "lazy"}
+            priority={activeIndex === 0}
             unoptimized
           />
         ) : (
@@ -104,17 +156,15 @@ export function ImageSwiper({
             label="Previous image"
             position="left"
             onClick={() =>
-              setActiveIndex((index) =>
-                index === 0 ? activeImages.length - 1 : index - 1,
+              navigate(
+                activeIndex === 0 ? activeImages.length - 1 : activeIndex - 1,
               )
             }
           />
           <SliderButton
             label="Next image"
             position="right"
-            onClick={() =>
-              setActiveIndex((index) => (index + 1) % activeImages.length)
-            }
+            onClick={() => navigate((activeIndex + 1) % activeImages.length)}
           />
           <div
             style={{
@@ -131,7 +181,7 @@ export function ImageSwiper({
               <button
                 aria-label={`Show image ${index + 1}`}
                 key={index}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => navigate(index)}
                 type="button"
                 style={{
                   height: "7px",

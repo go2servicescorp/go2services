@@ -19,7 +19,7 @@ type RoomsResponse = {
   error?: string;
 };
 
-const CACHE_KEY = "room_data_v3";
+const CACHE_KEY = "room_data_v1";
 const CACHE_TIME = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 15;
 
@@ -147,7 +147,12 @@ export default function RoomListings() {
 
   function handleCardClick(room: RoomRecord) {
     const roomId = getRoomDetailsId(room);
-    if (roomId) router.push(`/pages/roomDetails/${encodeURIComponent(roomId)}`);
+    const token = new URLSearchParams(window.location.search).get("token");
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
+    if (roomId)
+      router.push(
+        `/pages/roomDetails/${encodeURIComponent(roomId)}${tokenQuery}`,
+      );
   }
 
   return (

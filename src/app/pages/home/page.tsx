@@ -1,7 +1,14 @@
+"use client";
+
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Wifi, Sofa, ParkingSquare, Car, Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const VancouverMap = dynamic(() => import("@/components/maps"), {
+  ssr: false,
+});
 
 const accommodations = [
   {
@@ -187,7 +194,7 @@ export default function HomePage() {
 
           {/* map placeholder — swap for <GoogleMap /> or next/dynamic embed */}
           <div className="flex aspect-[4/3] items-center justify-center rounded-xl border border-white/10 bg-[#252525]">
-            <MapEmbed />
+            <VancouverMap />
           </div>
         </div>
       </section>
@@ -206,17 +213,17 @@ function AmenityIcon({ name }: { name: string }) {
   return <>{icons[name] ?? null}</>;
 }
 
-export function MapEmbed() {
-  return (
-    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden">
-      <iframe
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d83268.55111238468!2d-123.16493421169905!3d49.29264892829354!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x548673f143a94fb3%3A0xbb9196ea9b81f38b!2sVancouver%2C%20BC%2C%20Canad%C3%A1!5e0!3m2!1spt-BR!2sbr!4v1780175105599!5m2!1spt-BR!2sbr"
-        width="100%"
-        height="100%"
-        loading="lazy"
-        style={{ border: 0 }}
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-    </div>
-  );
-}
+// export function MapEmbed() {
+//   return (
+//     <div className="w-full aspect-[4/3] rounded-xl overflow-hidden">
+//       <iframe
+//         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d83268.55111238468!2d-123.16493421169905!3d49.29264892829354!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x548673f143a94fb3%3A0xbb9196ea9b81f38b!2sVancouver%2C%20BC%2C%20Canad%C3%A1!5e0!3m2!1spt-BR!2sbr!4v1780175105599!5m2!1spt-BR!2sbr"
+//         width="100%"
+//         height="100%"
+//         loading="lazy"
+//         style={{ border: 0 }}
+//         referrerPolicy="no-referrer-when-downgrade"
+//       />
+//     </div>
+//   );
+// }
