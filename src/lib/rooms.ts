@@ -17,8 +17,7 @@ export type AirtableAttachment = {
   // outros campos que o Airtable retorna
 };
 
-const DEFAULT_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxq3pKJtBwLvktNBh5S9KuTwDJp_88_vg_QUbUBZFxY9qszUiAjRJ6Jpm6g0OWfIlCF/exec";
+const DEFAULT_SCRIPT_URL = process.env.GOOGLE_SCRIPTS_URL;
 
 export async function getRooms() {
   const scriptUrl =
@@ -38,9 +37,18 @@ export async function getRooms() {
       throw new Error(`Fonte externa retornou HTTP ${res.status}`);
     }
 
-    return sortActiveRoomsFirst(
-      await addDriveImages(normalizeRooms(await res.json())),
-    );
+    const rawText = await res.text();
+    let json: unknown;
+
+    try {
+      json = JSON.parse(rawText);
+    } catch {
+      throw new Error(
+        `Apps Script não retornou JSON válido. Provável causa: deployment sem acesso público ("Anyone") ou redirecionado para tela de login. Início da resposta: ${rawText.slice(0, 200)}`,
+      );
+    }
+
+    return sortActiveRoomsFirst(await addDriveImages(normalizeRooms(json)));
   }
 
   const sheetId = process.env.GOOGLE_SHEET_ID;
@@ -48,9 +56,7 @@ export async function getRooms() {
   const range = process.env.GOOGLE_SHEET_RANGE || "Página1!A1:Z100";
 
   if (!sheetId) {
-    throw new Error(
-      "Configure ROOM_LISTINGS_API_URL ou GOOGLE_SHEET_ID.",
-    );
+    throw new Error("Configure ROOM_LISTINGS_API_URL ou GOOGLE_SHEET_ID.");
   }
 
   const headers = new Headers();

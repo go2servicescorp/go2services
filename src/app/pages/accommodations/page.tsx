@@ -68,9 +68,12 @@ export default function RoomListings() {
       setIsLive(false);
 
       try {
-        const res = await fetch(`/api/rooms`, {
-          headers: { "ngrok-skip-browser-warning": "true" },
-        });
+        const res = await fetch(
+          `/api/rooms`,
+          //   , {
+          //   headers: { "ngrok-skip-browser-warning": "true" },
+          // }
+        );
         const data = (await res.json()) as RoomsResponse;
 
         if (!res.ok) throw new Error(data.error || "Failed to load data.");

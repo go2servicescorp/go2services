@@ -28,6 +28,7 @@ const navItems = [
 ];
 
 const serviceItems = [
+  { label: "Accommodations", href: "/pages/accommodations" },
   { label: "Transfers", href: "#" },
   { label: "Cleaning", href: "#" },
   { label: "Parking", href: "#" },

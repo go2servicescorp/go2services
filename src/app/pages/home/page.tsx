@@ -71,11 +71,11 @@ export default function HomePage() {
             Vancouver, Canada
           </span>
 
-          <h1 className="mb-4 font-serif text-5xl font-normal leading-[1.1] text-black sm:text-6xl">
+          <h1 className="mb-4 font-serif text-5xl font-normal leading-[1.1] text-[#008b8b] sm:text-6xl">
             Welcome
           </h1>
 
-          <p className="mx-auto mb-8 max-w-md text-[15px] leading-relaxed text-black/65">
+          <p className="mx-auto mb-8 max-w-md text-[20px] leading-relaxed text-black/65">
             We understand that life can get overwhelming, which is why
             we&apos;re here to assist you. Whether you&apos;re looking for
             rental options, reliable transfer services, or comfortable
