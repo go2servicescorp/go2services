@@ -68,7 +68,7 @@ export function TagBlock({
     .filter(Boolean);
 
   if (!items.length) return null;
-  console.log({ items });
+
   return (
     <section className="mt-4 rounded-lg border border-[#d8ebe8] bg-white p-5">
       <div className="mb-4 text-[10px] font-bold uppercase tracking-[1.5px] text-[#8a7f72]">

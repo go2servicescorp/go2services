@@ -48,7 +48,7 @@ export default function HomePage() {
       <section
         className="relative flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden bg-[#2d7a5f] w-full px-6 text-center"
         style={{
-          backgroundImage: "url('/background_mountain.jpeg')",
+          backgroundImage: "url('/background_mountain.png')",
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
@@ -118,7 +118,8 @@ export default function HomePage() {
             {accommodations.map((acc) => (
               <Link
                 key={acc.name}
-                href={`/accommodations/${acc.name.toLowerCase().replace(" ", "-")}`}
+                // href={`/accommodations/${acc.name.toLowerCase().replace(" ", "-")}`}
+                href="#"
                 className="group bg-white"
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
