@@ -41,11 +41,9 @@ export function ContactUs({
         throw new Error("Failed to send contact form");
       }
 
-      alert("Email enviado!");
       setSubmitted(true);
     } catch (error) {
       console.error(error);
-      alert("Não foi possível enviar o email. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }

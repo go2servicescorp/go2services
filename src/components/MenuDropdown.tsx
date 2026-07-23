@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Menu, Home, Users, Briefcase, Mail } from "lucide-react";
+import { Menu, Home, Users, Briefcase, Mail, Hotel } from "lucide-react";
 
 const navItems = [
   { label: "Home", href: "/pages/home", icon: Home },
+  { label: "Accommodations", href: "/pages/accommodations", icon: Hotel },
   { label: "About Us", href: "/pages/about", icon: Users },
   { label: "Services", href: "/pages/services", icon: Briefcase },
   { label: "Contact", href: "/pages/contact", icon: Mail },

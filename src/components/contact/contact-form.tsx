@@ -39,11 +39,8 @@ export function ContactForm({ roomName }: { roomName: string }) {
       if (!response.ok) {
         throw new Error("Failed to send contact form");
       }
-
-      alert("Email enviado!");
     } catch (error) {
       console.error(error);
-      alert("Não foi possível enviar o email. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }

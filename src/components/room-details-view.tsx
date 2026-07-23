@@ -227,23 +227,12 @@ export function RoomDetailsView({
 
   const detailsBlock = (
     <div className="flex flex-col gap-6">
-      {/* {field(room, "Description") ? (
-        <section className="rounded-lg border border-[#d8ebe8] bg-white p-5">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-[1.5px] text-[#8a7f72]">
-            Description
-          </div>
-          <p className="text-sm font-semibold leading-relaxed text-[#1a1410]">
-            {field(room, "Description")}
-          </p>
-        </section>
-      ) : null} */}
-
       <div className="grid gap-px overflow-hidden rounded-lg border border-[#d8ebe8] bg-white sm:grid-cols-2 lg:grid-cols-3">
         {detailFields.map(([label, key]) => (
           <DetailItem
             key={key}
             label={label}
-            value={formatDetailValue(room, key)}
+            value={formatDetailValue(room, key, available)}
           />
         ))}
       </div>
@@ -348,9 +337,10 @@ async function fetchFolderImages(folderId: string) {
   }
 }
 
-function formatDetailValue(room: RoomRecord, key: string) {
+function formatDetailValue(room: RoomRecord, key: string, available?: boolean) {
   const value = field(room, key);
-  if (key === "Monthly Rent" || key === "Deposit") return formatMoney(value);
+  if (key === "Monthly Rent" || key === "Deposit")
+    return available ? formatMoney(value) : "-";
   if (key === "Move-in date") return formatDate(value);
   return value;
 }

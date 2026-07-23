@@ -20,7 +20,10 @@ import {
   PawPrint,
   Ban, // Not allowed pets
 } from "lucide-react";
+import { FaWarehouse } from "react-icons/fa";
+import { GiGasStove } from "react-icons/gi";
 import { IoLogoNoSmoking } from "react-icons/io";
+import { MdPlumbing } from "react-icons/md";
 
 const EQUIPMENT_ICONS: Record<string, React.ElementType> = {
   Water: Droplets,
@@ -38,6 +41,9 @@ const EQUIPMENT_ICONS: Record<string, React.ElementType> = {
   "Recreation facilities": Dumbbell,
   "Stove and oven": ChefHat,
   Furniture: Sofa,
+  "Natural gas": GiGasStove,
+  "Sewage disposal": MdPlumbing,
+  Storage: FaWarehouse,
 };
 
 const TAG_ICONS: Record<string, React.ElementType> = {
