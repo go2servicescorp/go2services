@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Wifi, Sofa, ParkingSquare, Car, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useIsIOS } from "@/hooks/useIsIOS";
 
 const VancouverMap = dynamic(() => import("@/components/maps"), {
   ssr: false,
@@ -42,6 +43,7 @@ const amenities = [
 ];
 
 export default function HomePage() {
+  const isIOS = useIsIOS();
   return (
     <main className="min-h-screen font-sans text-[#1a1a1a]">
       {/* ── Hero ─────────────────────────────────────────────── */}
@@ -52,7 +54,7 @@ export default function HomePage() {
           backgroundSize: "cover",
           backgroundPosition: "center center",
           backgroundRepeat: "no-repeat",
-          backgroundAttachment: "fixed",
+          backgroundAttachment: isIOS ? "scroll" : "fixed",
         }}
       >
         {/* subtle diagonal texture */}

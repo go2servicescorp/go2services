@@ -85,11 +85,7 @@ export function RoomCard({
           />
           <MetaItem
             label="Move-in"
-            value={
-              available
-                ? formatDate(field(room, "Move-in date", "move_in_date"))
-                : "Soon"
-            }
+            value={formatDate(field(room, "Move-in date", "move_in_date"))}
           />
           <MetaItem label="Area" value={field(room, "Area") || "-"} />
         </div>
