@@ -3,6 +3,7 @@ import "./globals.css";
 import { RoomsProvider } from "@/provider/RoomsProvider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Go2Rent",
@@ -27,6 +28,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </RoomsProvider>
+        <Analytics />
       </body>
     </html>
   );

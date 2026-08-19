@@ -12,6 +12,7 @@ import {
 import type { RoomRecord } from "@/types/rooms";
 import { useRouter } from "next/navigation";
 import { useRooms } from "@/provider/RoomsProvider";
+import Link from "next/link";
 
 type RoomsResponse = {
   rooms?: RoomRecord[];
@@ -148,14 +149,14 @@ export default function RoomListings() {
     [hasMore],
   );
 
-  function handleCardClick(room: RoomRecord) {
+  function getRoomHref(room: RoomRecord) {
     const roomId = getRoomDetailsId(room);
+    if (!roomId) return null;
+
     const token = new URLSearchParams(window.location.search).get("token");
     const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
-    if (roomId)
-      router.push(
-        `/pages/roomDetails/${encodeURIComponent(roomId)}${tokenQuery}`,
-      );
+
+    return `/pages/roomDetails/${encodeURIComponent(roomId)}${tokenQuery}`;
   }
 
   return (
@@ -195,13 +196,17 @@ export default function RoomListings() {
                 No rooms found
               </div>
             ) : (
-              visibleRooms.map((room, index) => (
-                <RoomCard
-                  key={`${field(room, "Room", "room")}-${index}`}
-                  room={room}
-                  onClick={() => handleCardClick(room)}
-                />
-              ))
+              visibleRooms.map(
+                (room, index) =>
+                  getRoomHref(room) && (
+                    <Link
+                      key={`${field(room, "Room", "room")}-${index}`}
+                      href={getRoomHref(room)!}
+                    >
+                      <RoomCard room={room} />
+                    </Link>
+                  ),
+              )
             )}
           </section>
 

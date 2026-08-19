@@ -13,7 +13,7 @@ export function RoomCard({
   onClick,
 }: {
   room: RoomRecord;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const available = isAvailable(room);
   const imageUrl = field(room, "RoomImageUrl", "HouseImageUrl");
