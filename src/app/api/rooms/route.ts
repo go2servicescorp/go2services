@@ -8,10 +8,6 @@ export async function GET() {
       (room) => room.RoomImageUrl || room.HouseImageUrl,
     ).length;
 
-    console.info(
-      `[api/rooms] returning ${rooms.length} room(s), ${withImages} with image URLs.`,
-    );
-
     return NextResponse.json({
       rooms,
       updatedAt: new Date().toISOString(),

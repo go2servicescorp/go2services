@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { FormField } from "../form/form-field";
 import ContactSuccess from "./contact-success";
+import PhoneInput, {
+  isValidPhoneNumber,
+  formatPhoneNumberIntl,
+} from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 const initialState = {
   fullName: "",
@@ -15,9 +20,11 @@ export function ContactForm({ roomName }: { roomName: string }) {
   const [submitted, setSubmitted] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [fields, setFields] = useState(initialState);
+  const [touched, setTouched] = useState(false);
 
   const allFilled = Object.values(fields).every((v) => v.trim() !== "");
-  const canSubmit = allFilled && agreed;
+  const phoneValid = fields.phone ? isValidPhoneNumber(fields.phone) : false;
+  const canSubmit = allFilled && phoneValid && agreed;
 
   function handleChange(name: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -32,9 +39,17 @@ export function ContactForm({ roomName }: { roomName: string }) {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    setTouched(true);
+
+    if (!canSubmit) return;
+
     setIsSubmitting(true);
 
-    const filledFields = { ...fields, room: roomName };
+    const filledFields = {
+      ...fields,
+      phone: fields.phone ? formatPhoneNumberIntl(fields.phone) : fields.phone,
+      room: roomName,
+    };
 
     try {
       const response = await fetch("/api/contact/form", {
@@ -80,13 +95,38 @@ export function ContactForm({ roomName }: { roomName: string }) {
             pattern="/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/"
             onChange={handleChange("email")}
           />
-          <FormField
-            label="Phone"
-            name="phone"
-            type="tel"
-            pattern="[0-9]+"
-            onChange={handleChange("phone")}
-          />
+          <div className="mb-4 block">
+            <span className="mb-1.5 block text-xs font-bold uppercase tracking-[1.2px] text-[#6f665d]">
+              Phone
+              <span className="text-red-500">*</span>
+            </span>
+            <PhoneInput
+              international
+              defaultCountry="CA"
+              value={fields.phone}
+              onChange={(value) =>
+                setFields((prev) => ({ ...prev, phone: value ?? "" }))
+              }
+              onBlur={() => setTouched(true)}
+              placeholder="Digite o número"
+              className={`flex items-center gap-2 rounded border px-3 py-2.5 bg-white focus-within:ring-2 focus-within:ring-[#0ABDAD]/20 ${
+                touched && !phoneValid
+                  ? "border-red-400 focus-within:border-red-400"
+                  : "border-[#bfe8e3] focus-within:border-[#0ABDAD]"
+              }`}
+              numberInputProps={{
+                className:
+                  "flex-1 border-none outline-none text-sm bg-transparent",
+              }}
+            />
+            {touched && !phoneValid && (
+              <p className="mt-1 text-xs text-red-500">
+                {fields.phone
+                  ? "Invalid phone number"
+                  : "Phone number is required"}
+              </p>
+            )}
+          </div>
           <FormField
             label="A short introduction about yourself"
             name="introduction"

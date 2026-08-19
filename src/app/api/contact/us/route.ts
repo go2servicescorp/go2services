@@ -2,7 +2,6 @@ import { transporter } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
-    console.log({ req });
     const { fullName, email, subject, message } = await req.json();
 
     await transporter.sendMail({

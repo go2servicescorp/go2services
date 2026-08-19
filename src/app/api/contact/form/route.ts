@@ -2,7 +2,6 @@ import { transporter } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
-    console.log({ req });
     const { fullName, email, phone, introduction, availableDates, room } =
       await req.json();
 
