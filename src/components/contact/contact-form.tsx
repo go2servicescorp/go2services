@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { FormField } from "../form/form-field";
 import ContactSuccess from "./contact-success";
 import PhoneInput, {
@@ -21,10 +22,13 @@ export function ContactForm({ roomName }: { roomName: string }) {
   const [agreed, setAgreed] = useState(false);
   const [fields, setFields] = useState(initialState);
   const [touched, setTouched] = useState(false);
+  const [error, setError] = useState("");
+  const [token, setToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const allFilled = Object.values(fields).every((v) => v.trim() !== "");
   const phoneValid = fields.phone ? isValidPhoneNumber(fields.phone) : false;
-  const canSubmit = allFilled && phoneValid && agreed;
+  const canSubmit = allFilled && phoneValid && agreed && token !== "";
 
   function handleChange(name: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -35,20 +39,31 @@ export function ContactForm({ roomName }: { roomName: string }) {
   function handleReset() {
     setSubmitted(false);
     setFields(initialState);
+    setAgreed(false);
+    setTouched(false);
+    setError("");
+    setToken(""); // o Turnstile será remontado e gerará um novo token
   }
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setTouched(true);
 
-    if (!canSubmit) return;
+    if (!canSubmit || isSubmitting) return;
 
     setIsSubmitting(true);
+    setError("");
 
-    const filledFields = {
+    // Honeypot: campo escondido, deve permanecer vazio
+    const formData = new FormData(event.currentTarget);
+    const website = (formData.get("website") as string) ?? "";
+
+    const payload = {
       ...fields,
       phone: fields.phone ? formatPhoneNumberIntl(fields.phone) : fields.phone,
       room: roomName,
+      website,
+      turnstileToken: token,
     };
 
     try {
@@ -57,20 +72,34 @@ export function ContactForm({ roomName }: { roomName: string }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(filledFields),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error(
+            "Too many attempts. Please try again in a few minutes.",
+          );
+        }
         throw new Error("Failed to send contact form");
       }
-    } catch (error) {
-      console.error(error);
+
+      setSubmitted(true); // só mostra sucesso se realmente enviou
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error && err.message.startsWith("Too many")
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
+      // O token é de uso único: sempre gerar um novo
+      turnstileRef.current?.reset();
+      setToken("");
       setIsSubmitting(false);
-      setSubmitted(true);
     }
   }
-
+  console.log("SITE KEY:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   return (
     <form
       className="rounded-lg border border-[#d8ebe8] bg-[#f7fffd] p-5"
@@ -92,7 +121,6 @@ export function ContactForm({ roomName }: { roomName: string }) {
             label="Email"
             name="email"
             type="email"
-            pattern="/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/"
             onChange={handleChange("email")}
           />
           <div className="mb-4 block">
@@ -149,6 +177,33 @@ export function ContactForm({ roomName }: { roomName: string }) {
               setAgreed(target.checked);
             }}
           />
+
+          {/* Honeypot: invisível para humanos, bots costumam preencher */}
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            style={{ position: "absolute", left: "-9999px", opacity: 0 }}
+          />
+
+          <div className="mt-2">
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              onSuccess={setToken}
+              onExpire={() => setToken("")}
+              onError={() => setToken("")}
+            />
+          </div>
+
+          {error && (
+            <p role="alert" className="mt-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
           <button
             className="mt-2 flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-black uppercase tracking-[1px] text-white transition disabled:cursor-not-allowed disabled:opacity-40 bg-[#0ABDAD] hover:bg-[#079b8d] disabled:hover:bg-[#0ABDAD]"
             type="submit"

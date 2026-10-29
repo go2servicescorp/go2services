@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Wifi, Sofa, ParkingSquare, Car, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useIsIOS } from "@/hooks/useIsIOS";
+import { useTranslations } from "next-intl";
 
 const VancouverMap = dynamic(() => import("@/components/maps"), {
   ssr: false,
@@ -44,6 +45,8 @@ const amenities = [
 
 export default function HomePage() {
   const isIOS = useIsIOS();
+  const t = useTranslations("home");
+
   return (
     <main className="min-h-screen font-sans text-[#1a1a1a]">
       {/* ── Hero ─────────────────────────────────────────────── */}
@@ -74,16 +77,11 @@ export default function HomePage() {
           </span>
 
           <h1 className="mb-4 font-serif text-5xl font-normal leading-[1.1] text-[#008b8b] sm:text-6xl">
-            Welcome
+            {t("welcome")}
           </h1>
 
           <p className="mx-auto mb-8 max-w-md text-[20px] leading-relaxed text-black/65">
-            We understand that life can get overwhelming, which is why
-            we&apos;re here to assist you. Whether you&apos;re looking for
-            rental options, reliable transfer services, or comfortable
-            accommodation, our dedicated team is prepared to deliver the highest
-            quality of service. Let us handle the details so you can focus on
-            what truly matters to you.
+            {t("description")}
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
@@ -91,13 +89,13 @@ export default function HomePage() {
               href="/pages/accommodations"
               className="rounded-md bg-white px-6 py-2.5 text-sm font-medium text-black transition-opacity hover:opacity-90"
             >
-              View accommodations
+              {t("viewAccommodations")}
             </Link>
             <Link
               href="/pages/contact"
               className="rounded-md border border-black/30 px-6 py-2.5 text-sm font-normal text-black transition-colors hover:bg-black/10"
             >
-              Contact us
+              {t("contactUs")}
             </Link>
           </div>
         </div>
@@ -108,10 +106,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-10">
             <p className="mb-1 text-[11px] font-medium uppercase tracking-[2px] text-[#2d7a5f]">
-              Accommodations
+              {t("accommodations")}
             </p>
             <h2 className="font-serif text-3xl font-normal text-[#1a1a1a] sm:text-4xl">
-              Find your neighbourhood
+              {t("findNeighbourhood")}
             </h2>
           </div>
 
@@ -139,7 +137,7 @@ export default function HomePage() {
                   </p>
                   <p className="mt-0.5 text-xs text-[#999]">{acc.sub}</p>
                   <span className="mt-2 inline-block rounded-[3px] bg-[#e8f4f0] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#2d7a5f]">
-                    Available
+                    {t("available")}
                   </span>
                 </div>
               </Link>
@@ -153,10 +151,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-10">
             <p className="mb-1 text-[11px] font-medium uppercase tracking-[2px] text-[#2d7a5f]">
-              Included in every stay
+              {t("includedInEveryStay")}
             </p>
             <h2 className="font-serif text-3xl font-normal text-[#1a1a1a] sm:text-4xl">
-              What we offer
+              {t("whatWeOffer")}
             </h2>
           </div>
 
@@ -182,16 +180,13 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-4xl items-center gap-12 sm:grid-cols-2">
           <div>
             <p className="mb-1 text-[11px] font-medium uppercase tracking-[2px] text-[#6ec9a8]">
-              Our locations
+              {t("ourLocations")}
             </p>
             <h2 className="font-serif text-3xl font-normal text-white sm:text-4xl">
-              Central, connected &amp; convenient
+              {t("centralConnectedConvenient")}
             </h2>
             <p className="mt-4 text-[14px] leading-relaxed text-white/50">
-              Looking for a convenient location for your stay? Our properties
-              are situated near grocery stores, restaurants, shops, and public
-              transportation making it easy for you to explore the area. Check
-              out our locations page to find the perfect spot for you.
+              {t("locationDescription")}
             </p>
           </div>
 
