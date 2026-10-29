@@ -1,7 +1,7 @@
 import { RoomDetailsView } from "@/components/room-details-view";
 
 export default async function RoomDetailsPage(
-  props: PageProps<"/pages/roomDetails/[roomId]">,
+  props: PageProps<"/[locale]/pages/roomDetails/[roomId]">,
 ) {
   const { roomId } = await props.params;
   const searchParams = await props.searchParams;
