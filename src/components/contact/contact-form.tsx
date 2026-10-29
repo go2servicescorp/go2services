@@ -99,7 +99,7 @@ export function ContactForm({ roomName }: { roomName: string }) {
       setIsSubmitting(false);
     }
   }
-  console.log("SITE KEY:", process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
   return (
     <form
       className="rounded-lg border border-[#d8ebe8] bg-[#f7fffd] p-5"

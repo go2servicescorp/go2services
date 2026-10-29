@@ -9,7 +9,7 @@ import ContactSuccess from "@/components/contact/contact-success";
 const socials = [
   {
     icon: FaFacebook,
-    href: "https://www.facebook.com/people/GoTwo-Prime-Living/pfbid02NqdVCuAf3zNf5x7rR9ZdsZEX4Eu1FA5hfJByH9eCzpijvsCTdT4G3D5a6yCEwMBCl/?mibextid=wwXIfr&rdid=BIUp1o8XR0iex6m6&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DweBRFqcF%2F%3Fmibextid%3DwwXIfr",
+    href: "https://www.facebook.com/share/1GpBGa5Fja/?mibextid=wwXIfr",
     label: "Facebook",
   },
   {
