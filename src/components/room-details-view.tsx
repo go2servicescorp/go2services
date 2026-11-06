@@ -6,18 +6,18 @@ import {
   cn,
   displayFont,
   field,
-  formatMoney,
   getRoomDetailsId,
   isAvailable,
 } from "@/lib/room-utils";
 import type { DriveImage } from "@/lib/drive";
 import type { RoomRecord } from "@/types/rooms";
-
 import { ImageTab } from "./image/image-tab";
 import { getImageGroups, ImageSwiper } from "./image/image-swiper";
 import { ContactForm } from "./contact/contact-form";
 import { TagBlock } from "./tags/tag-block";
 import { DetailItem } from "./detailItem/detail-item";
+import { BookingCard } from "./booking-card/booking-card";
+import { formatDate, formatDetailValue, toText } from "@/lib/utils";
 
 type RoomsResponse = {
   rooms?: RoomRecord[];
@@ -247,6 +247,17 @@ export function RoomDetailsView({
     </div>
   );
 
+  const moveInDate = formatDate(field(room, "Move-in date"));
+  const applyHref = {
+    pathname: "/pages/application",
+    query: {
+      room: toText(room["Room"]),
+      street: toText(room["Name (site)"]),
+      monthlyRent: toText(room["Monthly Rent"]),
+      deposit: toText(room["Deposit"]),
+    },
+  };
+
   return (
     <main className="min-h-screen bg-white text-[#1a1410]">
       <div className="mx-auto w-full" style={{ maxWidth: "1600px" }}>
@@ -288,7 +299,12 @@ export function RoomDetailsView({
             <div className="lg:col-start-1 lg:row-start-1">{imageSwiper}</div>
 
             <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:pt-24">
-              <ContactForm roomName={decodedRoomId} />
+              <BookingCard
+                applyHref={applyHref}
+                roomName={decodedRoomId}
+                moveInDate={moveInDate}
+                isAvailable={available}
+              />
             </aside>
 
             <div className="lg:col-start-1 lg:row-start-2">{detailsBlock}</div>
@@ -335,19 +351,4 @@ async function fetchFolderImages(folderId: string) {
     console.warn(error);
     return [];
   }
-}
-
-function formatDetailValue(room: RoomRecord, key: string, available?: boolean) {
-  const value = field(room, key);
-  if (key === "Monthly Rent" || key === "Deposit")
-    return available ? formatMoney(value) : "-";
-  if (key === "Move-in date") return formatDate(value);
-  return value;
-}
-
-function formatDate(value: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-CA", { timeZone: "UTC" });
 }

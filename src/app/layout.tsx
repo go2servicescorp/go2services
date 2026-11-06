@@ -4,34 +4,20 @@ import { RoomsProvider } from "@/provider/RoomsProvider";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Analytics } from "@vercel/analytics/next";
-import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { routing } from "@/i18n/routing";
-import { getMessages } from "next-intl/server";
-import { notFound } from "next/navigation";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Go2Rent",
   description: "Room listings for furnished rentals",
 };
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
-
 export default async function RootLayout({
   children,
-  params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = await params;
-
-  if (!hasLocale(routing.locales, locale)) {
-    notFound();
-  }
-
-  const messages = await getMessages();
+  const locale = await getLocale();
 
   return (
     <html lang={locale} className="h-full antialiased">
@@ -39,7 +25,7 @@ export default async function RootLayout({
         className="min-h-full flex flex-col items-center"
         suppressHydrationWarning
       >
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider>
           <RoomsProvider>
             <div className="max-w-[1600px] mx-auto w-full flex flex-col flex-1">
               <Header />

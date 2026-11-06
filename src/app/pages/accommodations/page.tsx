@@ -10,7 +10,6 @@ import {
   monoFont,
 } from "@/lib/room-utils";
 import type { RoomRecord } from "@/types/rooms";
-import { useRouter } from "next/navigation";
 import { useRooms } from "@/provider/RoomsProvider";
 import Link from "next/link";
 
@@ -32,7 +31,6 @@ export default function RoomListings() {
   const [error, setError] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const router = useRouter();
 
   const { search, activeFilter, setFilteredRoomsCount } = useRooms();
 
