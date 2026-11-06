@@ -1,5 +1,7 @@
 "use client";
 
+import { AvailabilityTag } from "./availability";
+
 interface BookingCardHeaderProps {
   title: string;
   moveIn: Date | string;
@@ -21,19 +23,9 @@ export function BookingCardHeader({
 
   return (
     <div className="flex flex-col gap-2">
-      <span
-        className={`inline-flex w-fit items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
-          isAvailable ? "bg-teal-50 text-teal-800" : "bg-red-50 text-red-700"
-        }`}
-      >
-        <span
-          aria-hidden
-          className={`size-1.5 rounded-full ${
-            isAvailable ? "bg-teal-600" : "bg-red-600"
-          }`}
-        />
-        {isAvailable ? "Available" : "Not available"}
-      </span>
+      <div className="lg:hidden">
+        <AvailabilityTag isAvailable={isAvailable} />
+      </div>
 
       <h2 className="text-lg font-bold">{title}</h2>
 

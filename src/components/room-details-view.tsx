@@ -313,7 +313,12 @@ export function RoomDetailsView({
           <section className="flex flex-col gap-8 px-4 py-6 sm:px-8">
             {imageSwiper}
             {detailsBlock}
-            <ContactForm roomName={decodedRoomId} />
+            <BookingCard
+              applyHref={applyHref}
+              roomName={decodedRoomId}
+              moveInDate={moveInDate}
+              isAvailable={available}
+            />
           </section>
         )}
       </div>
