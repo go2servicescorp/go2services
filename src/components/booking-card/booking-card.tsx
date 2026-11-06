@@ -23,8 +23,8 @@ export function BookingCard({
 }: BookingCardProps) {
   return (
     <>
-      <aside className="hidden lg:sticky lg:top-4 lg:ml-auto lg:mt-14 lg:block lg:w-80 lg:shrink-0 lg:self-start">
-        <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+      <aside className="hidden sm:sticky sm:top-4 sm:ml-auto sm:block sm:w-100 sm:shrink-0 sm:self-start">
+        <div className="flex flex-col gap-6 rounded-xl border border-gray-200 bg-white p-4 sm:max-h-[calc(100vh-2rem)] sm:overflow-y-auto">
           <BookingCardHeader
             title="Interested in this room?"
             moveIn={moveInDate}

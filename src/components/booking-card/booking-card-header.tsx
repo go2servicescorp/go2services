@@ -23,7 +23,7 @@ export function BookingCardHeader({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="lg:hidden">
+      <div className="sm:hidden">
         <AvailabilityTag isAvailable={isAvailable} />
       </div>
 
