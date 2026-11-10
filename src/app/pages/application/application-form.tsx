@@ -8,7 +8,10 @@ import type { ApplicationData } from "@/lib/form-pdf";
 import {
   DOCUMENT_CATEGORIES,
   MAX_FILES_PER_CATEGORY,
+  MAX_FILE_SIZE_MB,
+  MAX_TOTAL_SIZE_MB,
   emptyDocuments,
+  formatSize,
   validateDocuments,
   type DocumentFiles,
   type DocumentKey,
@@ -18,9 +21,12 @@ import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import PhoneField from "./phone-field";
+import LimitModal from "@/components/modal/size-limit/size-limit";
 
 type Status = "idle" | "sending" | "ok" | "error";
 type OccupationStatus = ApplicationData["status"];
+
+const MB = 1024 * 1024;
 
 type TextField = {
   name: keyof ApplicationData;
@@ -161,6 +167,7 @@ export function ApplicationForm(props: ApplicationFormProps) {
   const [semAssinatura, setSemAssinatura] = useState(false);
   const [documents, setDocuments] = useState<DocumentFiles>(emptyDocuments);
   const [documentsError, setDocumentsError] = useState("");
+  const [limitMessage, setLimitMessage] = useState(""); // file size / count modal
   const [serverError, setServerError] = useState("");
   const [formKey, setFormKey] = useState(0); // muda para limpar o formulário
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -217,20 +224,56 @@ export function ApplicationForm(props: ApplicationFormProps) {
       return next as ApplicationData;
     });
     resetEmployerSchool();
+
+    // the school document is only shown for student / both: drop it otherwise,
+    // so a hidden file never travels in the request or counts toward the limit
+    if (value !== "student" && value !== "both") {
+      setDocuments((prev) => ({ ...prev, schoolEnrollment: [] }));
+    }
   }
 
   function addDocuments(key: DocumentKey, newFiles: File[]) {
     setDocumentsError("");
-    setDocuments((prev) => {
-      // ignore a file that is already in the list (same name and size)
-      const fresh = newFiles.filter(
-        (f) => !prev[key].some((p) => p.name === f.name && p.size === f.size),
-      );
-      return {
+
+    const current = documents[key];
+    // ignore a file that is already in the list (same name and size)
+    const fresh = newFiles.filter(
+      (f) => !current.some((p) => p.name === f.name && p.size === f.size),
+    );
+
+    // everything in state goes into the request, so count all categories
+    let total = DOCUMENT_CATEGORIES.reduce(
+      (sum, c) => sum + documents[c.key].reduce((s, f) => s + f.size, 0),
+      0,
+    );
+
+    const accepted: File[] = [];
+    let message = "";
+
+    for (const file of fresh) {
+      if (current.length + accepted.length >= MAX_FILES_PER_CATEGORY) {
+        message ||= `You can attach up to ${MAX_FILES_PER_CATEGORY} files in this category.`;
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE_MB * MB) {
+        message ||= `"${file.name}" (${formatSize(file.size)}) is larger than the ${MAX_FILE_SIZE_MB} MB limit per file.`;
+        continue;
+      }
+      if (total + file.size > MAX_TOTAL_SIZE_MB * MB) {
+        message ||= `"${file.name}" cannot be added: the total size of all files is limited to ${MAX_TOTAL_SIZE_MB} MB (currently ${formatSize(total)}).`;
+        continue;
+      }
+      accepted.push(file);
+      total += file.size;
+    }
+
+    if (message) setLimitMessage(message);
+    if (accepted.length > 0) {
+      setDocuments((prev) => ({
         ...prev,
-        [key]: [...prev[key], ...fresh].slice(0, MAX_FILES_PER_CATEGORY),
-      };
-    });
+        [key]: [...prev[key], ...accepted],
+      }));
+    }
   }
 
   function removeDocument(key: DocumentKey, index: number) {
@@ -338,6 +381,12 @@ export function ApplicationForm(props: ApplicationFormProps) {
             error?: string;
           } | null;
           setServerError(body?.error ?? "");
+        }
+        // 413 = the host rejected the request body before reaching our code
+        if (res.status === 413) {
+          setServerError(
+            `The files are too large. Keep the total under ${MAX_TOTAL_SIZE_MB} MB.`,
+          );
         }
         setStatus("error");
       }
@@ -607,6 +656,8 @@ export function ApplicationForm(props: ApplicationFormProps) {
           setStatus("idle");
         }}
       />
+
+      <LimitModal message={limitMessage} onClose={() => setLimitMessage("")} />
     </main>
   );
 }

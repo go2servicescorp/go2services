@@ -13,11 +13,15 @@ import type { DriveImage } from "@/lib/drive";
 import type { RoomRecord } from "@/types/rooms";
 import { ImageTab } from "./image/image-tab";
 import { getImageGroups, ImageSwiper } from "./image/image-swiper";
-import { ContactForm } from "./contact/contact-form";
 import { TagBlock } from "./tags/tag-block";
 import { DetailItem } from "./detailItem/detail-item";
 import { BookingCard } from "./booking-card/booking-card";
 import { formatDate, formatDetailValue, toText } from "@/lib/utils";
+import {
+  readRoomsCache,
+  ROOMS_CACHE_KEY,
+  writeRoomsCache,
+} from "@/lib/rooms-cache";
 
 type RoomsResponse = {
   rooms?: RoomRecord[];
@@ -31,7 +35,7 @@ type DriveFolderResponse = {
 
 type ImageGroup = "room" | "house";
 
-const CACHE_KEY = "room_data_v7";
+const CACHE_KEY = ROOMS_CACHE_KEY;
 
 const detailFields = [
   ["Area", "Area"],
@@ -85,8 +89,12 @@ export function RoomDetailsView({
       setError("");
       setLoadedFolderIds([]);
 
-      const cachedRooms = readCachedRooms();
-      const cachedRoom = findRoom(cachedRooms, decodedRoomId);
+      // null when there is no cache or it is older than 1 day
+      // (an expired cache is also removed from localStorage)
+      const cachedRoom = findRoom(
+        readRoomsCache(CACHE_KEY)?.rooms ?? [],
+        decodedRoomId,
+      );
 
       if (cachedRoom) {
         setRoom(cachedRoom);
@@ -107,8 +115,7 @@ export function RoomDetailsView({
           throw new Error(data.error || "Unable to load room details.");
 
         const rooms = Array.isArray(data.rooms) ? data.rooms : [];
-        localStorage.setItem(CACHE_KEY, JSON.stringify(rooms));
-        localStorage.setItem(`${CACHE_KEY}_time`, String(Date.now()));
+        writeRoomsCache(CACHE_KEY, rooms);
 
         if (cancelled) return;
 
@@ -328,15 +335,6 @@ export function RoomDetailsView({
 
 function findRoom(rooms: RoomRecord[], roomId: string) {
   return rooms.find((room) => getRoomDetailsId(room) === roomId) || null;
-}
-
-function readCachedRooms() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    return cached ? (JSON.parse(cached) as RoomRecord[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 async function fetchFolderImages(folderId: string) {

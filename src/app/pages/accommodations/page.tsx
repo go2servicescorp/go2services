@@ -11,6 +11,12 @@ import {
 } from "@/lib/room-utils";
 import type { RoomRecord } from "@/types/rooms";
 import { useRooms } from "@/provider/RoomsProvider";
+import {
+  readRoomsCache,
+  writeRoomsCache,
+  ROOMS_CACHE_TTL,
+  ROOMS_CACHE_KEY,
+} from "@/lib/rooms-cache";
 import Link from "next/link";
 
 type RoomsResponse = {
@@ -19,8 +25,8 @@ type RoomsResponse = {
   error?: string;
 };
 
-const CACHE_KEY = "room_data_v1";
-const CACHE_TIME = 24 * 60 * 60 * 1000;
+const CACHE_KEY = ROOMS_CACHE_KEY;
+const CACHE_TIME = ROOMS_CACHE_TTL; // 1 day
 const PAGE_SIZE = 15;
 
 export default function RoomListings() {
@@ -46,15 +52,14 @@ export default function RoomListings() {
     let cancelled = false;
 
     async function loadRooms(forceRefresh = false) {
-      const cached = localStorage.getItem(CACHE_KEY);
-      const cachedTime = localStorage.getItem(`${CACHE_KEY}_time`);
-      const cacheValid =
-        cached && cachedTime && Date.now() - Number(cachedTime) < CACHE_TIME;
+      // returns null when there is no cache or it is older than 1 day
+      // (an expired cache is also removed from localStorage)
+      const cached = readRoomsCache(CACHE_KEY);
 
-      if (!forceRefresh && cacheValid) {
-        setRooms(JSON.parse(cached) as RoomRecord[]);
+      if (!forceRefresh && cached) {
+        setRooms(cached.rooms);
         setSyncText(
-          `Cached at ${new Date(Number(cachedTime)).toLocaleTimeString("en-US")}`,
+          `Cached at ${new Date(cached.savedAt).toLocaleTimeString("en-US")}`,
         );
         setIsLive(false);
         setIsLoading(false);
@@ -80,8 +85,7 @@ export default function RoomListings() {
 
         const nextRooms = Array.isArray(data.rooms) ? data.rooms : [];
         setRooms(nextRooms);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(nextRooms));
-        localStorage.setItem(`${CACHE_KEY}_time`, String(Date.now()));
+        writeRoomsCache(CACHE_KEY, nextRooms);
         setSyncText(`Updated at ${new Date().toLocaleTimeString("en-US")}`);
         setIsLive(true);
       } catch (err) {
