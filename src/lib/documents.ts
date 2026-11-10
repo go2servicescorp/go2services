@@ -68,9 +68,9 @@ export const ACCEPT_ATTRIBUTE = ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(
 
 // NOTE: some hosts cap the whole request body (Vercel serverless: about 4.5 MB).
 // If you deploy there, lower MAX_TOTAL_SIZE_MB to 4.
-export const MAX_FILE_SIZE_MB = 5;
-export const MAX_TOTAL_SIZE_MB = 15;
-export const MAX_FILES_PER_CATEGORY = 3;
+export const MAX_FILE_SIZE_MB = 1;
+export const MAX_TOTAL_SIZE_MB = 4;
+export const MAX_FILES_PER_CATEGORY = 2;
 
 const MB = 1024 * 1024;
 
