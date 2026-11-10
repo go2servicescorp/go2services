@@ -4,15 +4,19 @@ import { useEffect, useRef } from "react";
 import "./status-modal.css";
 
 type StatusModalProps = {
-  status: "idle" | "enviando" | "ok" | "erro";
+  status: "idle" | "sending" | "ok" | "error";
   errorMessage?: string;
   onClose: () => void;
 };
 
-export function StatusModal({ status, errorMessage, onClose }: StatusModalProps) {
+export function StatusModal({
+  status,
+  errorMessage,
+  onClose,
+}: StatusModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const open = status !== "idle";
-  const sending = status === "enviando";
+  const sending = status === "sending";
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -53,7 +57,7 @@ export function StatusModal({ status, errorMessage, onClose }: StatusModalProps)
       {/* key: remounts the content on each status, so the animations replay */}
       <div
         key={status}
-        role={status === "erro" ? "alert" : "status"}
+        role={status === "error" ? "alert" : "status"}
         aria-live="polite"
         className="flex flex-col items-center gap-4 px-8 py-10 text-center"
       >
@@ -100,14 +104,12 @@ export function StatusModal({ status, errorMessage, onClose }: StatusModalProps)
               <p className="text-lg font-semibold">
                 Application sent successfully!
               </p>
-              <p className="text-sm text-gray-500">
-                We will contact you soon.
-              </p>
+              <p className="text-sm text-gray-500">We will contact you soon.</p>
             </div>
           </>
         )}
 
-        {status === "erro" && (
+        {status === "error" && (
           <>
             <svg
               viewBox="0 0 52 52"

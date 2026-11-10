@@ -15,8 +15,11 @@ import {
 } from "@/lib/documents";
 import { StatusModal } from "@/components/modal/statuses-modal/status-modal";
 import { Turnstile, TurnstileInstance } from "@marsidev/react-turnstile";
+import { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import PhoneField from "./phone-field";
 
-type Status = "idle" | "enviando" | "ok" | "erro";
+type Status = "idle" | "sending" | "ok" | "error";
 type OccupationStatus = ApplicationData["status"];
 
 type TextField = {
@@ -35,11 +38,21 @@ export type ApplicationFormProps = {
 };
 
 const PROPERTY: TextField[] = [
-  { name: "moveIn", label: "Desired Move-In Date", type: "date" },
-  { name: "moveOut", label: "Desired Move-Out Date", type: "date" },
+  {
+    name: "moveIn",
+    label: "Desired Move-In Date",
+    type: "date",
+    required: true,
+  },
+  {
+    name: "moveOut",
+    label: "Desired Move-Out Date",
+    type: "date",
+    required: true,
+  },
 ];
 
-const PERSONAL: TextField[] = [
+const PERSONAL_TOP: TextField[] = [
   {
     name: "fullName",
     label: "Full Name",
@@ -47,17 +60,15 @@ const PERSONAL: TextField[] = [
     required: true,
   },
   { name: "email", label: "Email", type: "email", required: true },
-  { name: "phone", label: "Phone Number", type: "tel" },
-  { name: "countryOfOrigin", label: "Country of Origin" },
+];
+
+const PERSONAL_BOTTOM: TextField[] = [
+  { name: "countryOfOrigin", label: "Country of Origin", required: true },
   {
     name: "dateMovedToCanada",
     label: "Date You Moved to Canada (if applicable)",
     type: "date",
   },
-];
-
-const EMERGENCY: TextField[] = [
-  { name: "emergencyContact", label: "Emergency Contact Name & Phone" },
 ];
 
 // every field that belongs to the Occupation section (used to clear stale values)
@@ -69,7 +80,7 @@ const OCCUPATION_KEYS: (keyof ApplicationData)[] = [
   "startDate",
   "monthlyIncome",
   "workplaceAddress",
-  "employerContact",
+  "employerSchool",
   "statusOther",
 ];
 
@@ -120,17 +131,15 @@ function getOccupationFields(status: OccupationStatus): TextField[] {
           ? "Address of School"
           : "Address of Workplace",
     },
-    {
-      name: "employerContact",
-      label: isBoth
-        ? "Employer / School Contact (Name & Phone)"
-        : isStudent
-          ? "School Contact (Name & Phone)"
-          : "Employer Contact (Name & Phone)",
-    },
   );
 
   return fields;
+}
+
+function getEmployerSchoolLabel(status: OccupationStatus): string {
+  if (status === "both") return "Employer / School Contact";
+  if (status === "student") return "School Contact";
+  return "Employer Contact";
 }
 
 const REFERENCES: TextField[] = [
@@ -157,6 +166,29 @@ export function ApplicationForm(props: ApplicationFormProps) {
   const turnstileRef = useRef<TurnstileInstance>(null);
   const [token, setToken] = useState("");
 
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const phoneValid = !!data.phone && isValidPhoneNumber(data.phone);
+
+  const [emergencyName, setEmergencyName] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [emergencyPhoneTouched, setEmergencyPhoneTouched] = useState(false);
+  const emergencyPhoneValid =
+    !!emergencyPhone && isValidPhoneNumber(emergencyPhone);
+
+  const [employerSchoolName, setEmployerSchoolName] = useState("");
+  const [employerSchoolPhone, setEmployerSchoolPhone] = useState("");
+  const [employerSchoolPhoneTouched, setEmployerSchoolPhoneTouched] =
+    useState(false);
+
+  const hasOccupationFields =
+    data.status === "student" ||
+    data.status === "worker" ||
+    data.status === "both";
+
+  // optional: only invalid if filled in and wrong
+  const employerSchoolPhoneValid =
+    !employerSchoolPhone || isValidPhoneNumber(employerSchoolPhone);
+
   function setCampo<K extends keyof ApplicationData>(
     name: K,
     value: ApplicationData[K],
@@ -170,6 +202,12 @@ export function ApplicationForm(props: ApplicationFormProps) {
     };
   }
 
+  function resetEmployerSchool() {
+    setEmployerSchoolName("");
+    setEmployerSchoolPhone("");
+    setEmployerSchoolPhoneTouched(false);
+  }
+
   function handleStatusChange(value: string) {
     setDados((prev) => {
       const next = { ...prev } as Partial<ApplicationData>;
@@ -178,6 +216,7 @@ export function ApplicationForm(props: ApplicationFormProps) {
       next.status = value as OccupationStatus;
       return next as ApplicationData;
     });
+    resetEmployerSchool();
   }
 
   function addDocuments(key: DocumentKey, newFiles: File[]) {
@@ -202,20 +241,24 @@ export function ApplicationForm(props: ApplicationFormProps) {
     }));
   }
 
+  function renderFieldItems(fields: TextField[]) {
+    return fields.map((c) => (
+      <FormField
+        key={c.name}
+        label={c.label}
+        name={c.name}
+        type={c.type ?? "text"}
+        required={c.required}
+        placeholder={c.placeholder}
+        onChange={handleChange(c.name)}
+      />
+    ));
+  }
+
   function renderFields(fields: TextField[]) {
     return (
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {fields.map((c) => (
-          <FormField
-            key={c.name}
-            label={c.label}
-            name={c.name}
-            type={c.type ?? "text"}
-            required={c.required}
-            placeholder={c.placeholder}
-            onChange={handleChange(c.name)}
-          />
-        ))}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        {renderFieldItems(fields)}
       </div>
     );
   }
@@ -226,21 +269,39 @@ export function ApplicationForm(props: ApplicationFormProps) {
     const docsError = validateDocuments(documents, data.status);
     setDocumentsError(docsError ?? "");
     setSemAssinatura(!data.signatureImage);
-    if (docsError || !data.signatureImage) return;
+    setPhoneTouched(true);
+    setEmergencyPhoneTouched(true);
+    setEmployerSchoolPhoneTouched(true);
+    if (
+      docsError ||
+      !data.signatureImage ||
+      !phoneValid ||
+      !emergencyPhoneValid ||
+      (hasOccupationFields && !employerSchoolPhoneValid)
+    )
+      return;
 
     setServerError("");
-    setStatus("enviando");
+    setStatus("sending");
 
     try {
       // multipart/form-data: the form data goes in one JSON field and each
       // document goes as a file. Do NOT set Content-Type; the browser does it.
       const formData = new FormData();
+      const employerSchool = hasOccupationFields
+        ? [employerSchoolName.trim(), employerSchoolPhone]
+            .filter(Boolean)
+            .join(" - ") || undefined
+        : undefined;
+
       formData.append(
         "data",
         JSON.stringify({
           ...data,
           // avoids sending the "Other" text if the user changed the option
           statusOther: data.status === "other" ? data.statusOther : undefined,
+          emergencyContact: `${emergencyName.trim()} - ${emergencyPhone}`,
+          employerSchool,
           applicantName: data.fullName,
           // user's local date, formatted as YYYY-MM-DD
           date: new Date().toLocaleDateString("en-CA"),
@@ -264,7 +325,12 @@ export function ApplicationForm(props: ApplicationFormProps) {
         setSemAssinatura(false);
         setDocuments(emptyDocuments());
         setDocumentsError("");
-        setFormKey((k) => k + 1); // remonta o formulário e a assinatura
+        setFormKey((k) => k + 1); // remounts the form and the signature
+        setPhoneTouched(false);
+        setEmergencyName("");
+        setEmergencyPhone("");
+        setEmergencyPhoneTouched(false);
+        resetEmployerSchool();
       } else {
         // 400 = the server rejected something the user can fix: show the reason
         if (res.status === 400) {
@@ -273,12 +339,12 @@ export function ApplicationForm(props: ApplicationFormProps) {
           } | null;
           setServerError(body?.error ?? "");
         }
-        setStatus("erro");
+        setStatus("error");
       }
     } catch {
-      setStatus("erro");
+      setStatus("error");
     } finally {
-      // remonta o Turnstile para gerar um novo token
+      // remounts the Turnstile to generate a new token
       turnstileRef.current?.reset();
       setToken("");
     }
@@ -303,7 +369,21 @@ export function ApplicationForm(props: ApplicationFormProps) {
         {/* Personal Information */}
         <section className="flex flex-col gap-5">
           <h2 className="text-md font-bold">Personal Information</h2>
-          {renderFields(PERSONAL)}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {renderFieldItems(PERSONAL_TOP)}
+
+            <PhoneField
+              label="Phone"
+              required
+              value={data.phone}
+              onChange={(v) => setCampo("phone", v)}
+              touched={phoneTouched}
+              onBlur={() => setPhoneTouched(true)}
+              valid={phoneValid}
+            />
+
+            {renderFieldItems(PERSONAL_BOTTOM)}
+          </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Options
               legenda="Do you have a Canadian Bank Account?"
@@ -329,7 +409,29 @@ export function ApplicationForm(props: ApplicationFormProps) {
               }
             />
           </div>
-          {renderFields(EMERGENCY)}
+        </section>
+
+        {/* Emergency Contact */}
+        <section className="flex flex-col gap-5">
+          <h2 className="text-md font-bold">Emergency Contact</h2>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <FormField
+              label="Emergency Contact Name"
+              name="emergencyContactName"
+              type="text"
+              required
+              onChange={(e) => setEmergencyName(e.target.value)}
+            />
+            <PhoneField
+              label="Emergency Contact Phone"
+              required
+              value={emergencyPhone}
+              onChange={setEmergencyPhone}
+              touched={emergencyPhoneTouched}
+              onBlur={() => setEmergencyPhoneTouched(true)}
+              valid={emergencyPhoneValid}
+            />
+          </div>
         </section>
 
         {/* Occupation / Education */}
@@ -360,7 +462,26 @@ export function ApplicationForm(props: ApplicationFormProps) {
                 onChange={handleChange("statusOther")}
               />
             )}
-            {renderFields(getOccupationFields(data.status))}
+            {hasOccupationFields && (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {renderFieldItems(getOccupationFields(data.status))}
+
+                <FormField
+                  label={`${getEmployerSchoolLabel(data.status)} Name`}
+                  name="employerSchoolName"
+                  type="text"
+                  onChange={(e) => setEmployerSchoolName(e.target.value)}
+                />
+                <PhoneField
+                  label={`${getEmployerSchoolLabel(data.status)} Phone`}
+                  value={employerSchoolPhone}
+                  onChange={setEmployerSchoolPhone}
+                  touched={employerSchoolPhoneTouched}
+                  onBlur={() => setEmployerSchoolPhoneTouched(true)}
+                  valid={employerSchoolPhoneValid}
+                />
+              </div>
+            )}
           </div>
         </section>
 
@@ -399,18 +520,13 @@ export function ApplicationForm(props: ApplicationFormProps) {
             }
           />
           <FormField
-            label="Anything you would like to add or explain (line 1)"
+            label="Anything you would like to add or explain"
             name="notes1"
-            type="text"
+            type="textarea"
             required={false}
+            rows={3}
+            maxLength={220}
             onChange={handleChange("notes1")}
-          />
-          <FormField
-            label="Anything you would like to add or explain (line 2)"
-            name="notes2"
-            type="text"
-            required={false}
-            onChange={handleChange("notes2")}
           />
         </section>
 
@@ -476,18 +592,11 @@ export function ApplicationForm(props: ApplicationFormProps) {
 
         <button
           type="submit"
-          disabled={status === "enviando" || !canSubmit}
+          disabled={status === "sending" || !canSubmit}
           className="w-fit self-end rounded-md px-3 py-1.5 text-sm font-medium cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 bg-teal-500 hover:bg-teal-800 text-white"
         >
-          {status === "enviando" ? "Sending..." : "Submit application"}
+          {status === "sending" ? "Sending..." : "Submit application"}
         </button>
-
-        {/* {status === "ok" && <p>Application sent successfully!</p>}
-        {status === "erro" && (
-          <p role="alert">
-            {serverError || "Something went wrong. Please try again."}
-          </p>
-        )} */}
       </form>
 
       <StatusModal
@@ -517,7 +626,9 @@ function Options({
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend>{legenda}</legend>
+      <legend className="mb-3">
+        {legenda} {required && <span className="text-red-500">*</span>}
+      </legend>
       {options.map((o) => (
         <label key={o.value} className="flex items-center gap-2">
           <input

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import fs from "fs/promises";
 import path from "path";
-import { fillOutForm, ApplicationData } from "@/lib/form-pdf";
+import {
+  fillOutForm,
+  NotesTooLongError,
+  type ApplicationData,
+} from "@/lib/form-pdf";
 import {
   DOCUMENT_CATEGORIES,
   emptyDocuments,
@@ -27,6 +31,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Gmail rejects messages above 25 MB; keep a safety margin
+const MAX_TOTAL_ATTACHMENTS_BYTES = 20 * 1024 * 1024;
+
 const validEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 // The client reads `body.error` on a 400, so every message uses the key "error".
@@ -45,9 +52,17 @@ async function verifyTurnstile(token: string, ip?: string | null) {
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       { method: "POST", body },
     );
-    const result = (await res.json()) as { success?: boolean };
+    const result = (await res.json()) as {
+      success?: boolean;
+      "error-codes"?: string[];
+    };
+    if (!result.success) {
+      // reason for the failure (invalid-input-secret, timeout-or-duplicate, ...)
+      console.warn("turnstile failed:", result["error-codes"]);
+    }
     return result.success === true;
-  } catch {
+  } catch (e) {
+    console.error("turnstile request error:", e);
     return false; // if the check cannot run, do not let the request through
   }
 }
@@ -57,7 +72,20 @@ export async function POST(req: Request) {
     // multipart/form-data: JSON in the "data" field + one list of files per category
     const form = await req.formData();
 
-    const token = form.get("turnstileToken");
+    const raw = form.get("data");
+    if (typeof raw !== "string") {
+      return badRequest("Missing form data.");
+    }
+
+    // the Turnstile token travels inside the JSON ("turnstileToken")
+    let data: ApplicationData & { turnstileToken?: string };
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return badRequest("Invalid form data.");
+    }
+
+    const token = data.turnstileToken;
     if (typeof token !== "string" || !token) {
       return badRequest("Please complete the security check.");
     }
@@ -70,20 +98,11 @@ export async function POST(req: Request) {
       return badRequest("Security check failed. Please try again.");
     }
 
-    const raw = form.get("data");
-    if (typeof raw !== "string") {
-      return badRequest("Missing form data.");
-    }
-
-    let data: ApplicationData;
-    try {
-      data = JSON.parse(raw) as ApplicationData;
-    } catch {
-      return badRequest("Invalid form data.");
-    }
-
     if (!data.fullName || !data.email || !validEmail(data.email)) {
       return badRequest("A name and a valid email are required.");
+    }
+    if (!data.phone || !data.emergencyContact) {
+      return badRequest("Phone and emergency contact are required.");
     }
     if (data.depositAcknowledged !== true) {
       return badRequest("Please confirm the security deposit.");
@@ -137,6 +156,13 @@ export async function POST(req: Request) {
       }
     }
 
+    const totalBytes = attachments.reduce((n, a) => n + a.content.length, 0);
+    if (totalBytes > MAX_TOTAL_ATTACHMENTS_BYTES) {
+      return badRequest(
+        "The attached files are too large (max 20 MB in total).",
+      );
+    }
+
     // application PDF
     const modelo = await fs.readFile(
       path.join(
@@ -146,12 +172,21 @@ export async function POST(req: Request) {
         "application_to_rent_go_2_corp_2026_v2.pdf",
       ),
     );
-    const pdfBytes = await fillOutForm(data, modelo);
 
-    const fileName = data.fullName
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "-");
+    let pdfBytes: Uint8Array;
+    try {
+      pdfBytes = await fillOutForm(data, modelo);
+    } catch (e) {
+      if (e instanceof NotesTooLongError) return badRequest(e.message);
+      throw e;
+    }
+
+    const fileName =
+      data.fullName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "applicant";
 
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
@@ -159,9 +194,11 @@ export async function POST(req: Request) {
       replyTo: data.email,
       subject: `Application to Rent - ${data.fullName}`,
       text: [
-        `Nova aplicação de ${data.fullName} (${data.email}).`,
+        `New application from ${data.fullName} (${data.email}).`,
+        `Phone: ${data.phone}`,
+        `Room: ${data.room ?? "-"} | ${data.street ?? "-"}`,
         "",
-        "Anexos: PDF da aplicação e documentos:",
+        "Attachments: application PDF and documents:",
         ...summary,
       ].join("\n"),
       attachments: [

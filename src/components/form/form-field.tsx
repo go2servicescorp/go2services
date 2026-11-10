@@ -8,6 +8,7 @@ export function FormField({
   pattern,
   rows = 4,
   placeholder,
+  maxLength = undefined,
   onChange,
 }: {
   label: string;
@@ -17,6 +18,7 @@ export function FormField({
   pattern?: string;
   rows?: number;
   placeholder?: string;
+  maxLength?: number;
   onChange?: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
@@ -71,7 +73,7 @@ export function FormField({
     <label className="mb-4 block">
       <span className="mb-1.5 block text-xs font-bold uppercase tracking-[1.2px] text-[#6f665d]">
         {label}
-        <span className="text-red-500">*</span>
+        {required && <span className="text-red-500">*</span>}
       </span>
       {type === "textarea" ? (
         <textarea
@@ -82,6 +84,7 @@ export function FormField({
           placeholder={placeholder}
           onChange={handleChange}
           onInvalid={handleInvalid}
+          maxLength={maxLength}
         />
       ) : (
         <input
@@ -93,6 +96,7 @@ export function FormField({
           placeholder={placeholder}
           onChange={handleChange}
           onInvalid={handleInvalid}
+          maxLength={maxLength}
         />
       )}
       {error ? (

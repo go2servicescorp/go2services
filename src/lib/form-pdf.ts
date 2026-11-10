@@ -16,7 +16,7 @@ export type ApplicationData = {
   dateMovedToCanada?: string;
   canadianBankAccount?: boolean;
   smoker?: "yes" | "no" | "occasionally";
-  emergencyContact?: string;
+  emergencyContact?: string; // "Name - +14165551234"
   // Occupation / Education
   status?: "student" | "worker" | "both" | "other";
   statusOther?: string;
@@ -27,7 +27,7 @@ export type ApplicationData = {
   startDate?: string;
   monthlyIncome?: string;
   workplaceAddress?: string;
-  employerContact?: string;
+  employerSchool?: string; // "Name - +14165551234"
   // References
   referenceName?: string;
   referenceRelationship?: string;
@@ -78,7 +78,7 @@ const LABELS: Record<string, Position> = {
   startDate: { page: 1, x0: 242.5, x1: 364.8, base: 668.4 },
   monthlyIncome: { page: 1, x0: 253.5, x1: 369.7, base: 687.9 },
   workplaceAddress: { page: 1, x0: 225.8, x1: 501.0, base: 707.4 },
-  employerContact: { page: 1, x0: 290.8, x1: 535.4, base: 726.9 },
+  employerSchool: { page: 1, x0: 290.8, x1: 535.4, base: 726.9 },
   // Página 2 — References
   referenceName: { page: 2, x0: 205.2, x1: 480.4, base: 137.9 },
   referenceRelationship: { page: 2, x0: 136.2, x1: 313.5, base: 157.6 },
@@ -132,6 +132,63 @@ function safeText(text: string, font: PDFFont): string {
     .join("");
 }
 
+/** Erro lançado quando as observações não cabem nas duas linhas do PDF. */
+export class NotesTooLongError extends Error {
+  constructor() {
+    super("The notes are too long. Please shorten them.");
+    this.name = "NotesTooLongError";
+  }
+}
+
+// Tamanho mínimo da fonte das observações (as duas linhas usam o mesmo size)
+const NOTES_MIN_SIZE = 7;
+
+/** Quebra o text em linhas por palavras, sem passar de `width`. */
+function wrapWords(
+  words: string[],
+  font: PDFFont,
+  width: number,
+  size: number,
+): string[] | null {
+  const lines: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    // Uma palavra sozinha maior que a linha nunca vai caber neste size
+    if (font.widthOfTextAtSize(word, size) > width) return null;
+
+    const next = current ? `${current} ${word}` : word;
+    if (font.widthOfTextAtSize(next, size) <= width) {
+      current = next;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+/**
+ * Encaixa o text nas duas linhas (notes1 / notes2) SEM cortar nada:
+ * tenta o size normal e vai encolhendo a fonte até caber em 2 linhas.
+ * Retorna null se não couber nem no size mínimo.
+ */
+function fitNotes(
+  text: string,
+  font: PDFFont,
+  width: number,
+): { lines: string[]; size: number } | null {
+  const words = safeText(text, font).split(" ").filter(Boolean);
+  if (words.length === 0) return { lines: [], size: FONT_SIZE };
+
+  for (let size = FONT_SIZE; size >= NOTES_MIN_SIZE; size -= 0.5) {
+    const lines = wrapWords(words, font, width, size);
+    if (lines && lines.length <= 2) return { lines, size };
+  }
+  return null;
+}
+
 export async function fillOutForm(
   data: ApplicationData,
   modeloBytes: Uint8Array | ArrayBuffer,
@@ -140,8 +197,19 @@ export async function fillOutForm(
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pages = pdfDoc.getPages();
 
+  // Observações: encaixa nas duas linhas sem reticências (ou falha com erro claro)
+  const notesText = [data.notes1, data.notes2].filter(Boolean).join(" ");
+  const notesFit = fitNotes(
+    notesText,
+    font,
+    LABELS.notes1.x1 - LABELS.notes1.x0,
+  );
+  if (!notesFit) throw new NotesTooLongError();
+
   // Campos de text
   for (const [chave, pos] of Object.entries(LABELS)) {
+    if (chave === "notes1" || chave === "notes2") continue; // desenhados abaixo
+
     const valor = (data as Record<string, unknown>)[chave];
     if (typeof valor !== "string" || valor.trim() === "") continue;
 
@@ -174,6 +242,20 @@ export async function fillOutForm(
       color: COLOR,
     });
   }
+
+  // Observações (duas linhas, mesmo size, sem cortar)
+  const notesPositions = [LABELS.notes1, LABELS.notes2];
+  notesFit.lines.forEach((line, i) => {
+    const pos = notesPositions[i];
+    const page = pages[pos.page - 1];
+    page.drawText(line, {
+      x: pos.x0 + 1,
+      y: yPdf(page.getHeight(), pos.base) + UNDERLINE,
+      size: notesFit.size,
+      font,
+      color: COLOR,
+    });
+  });
 
   // Desenha um ✓ dentro do quadradinho
   const check = (boxe: Boxe, condition: boolean) => {
