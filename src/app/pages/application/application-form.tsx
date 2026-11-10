@@ -22,6 +22,8 @@ import { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import PhoneField from "./phone-field";
 import LimitModal from "@/components/modal/size-limit/size-limit";
+import { useRouter } from "next/navigation";
+import { IoMdArrowRoundBack } from "react-icons/io";
 
 type Status = "idle" | "sending" | "ok" | "error";
 type OccupationStatus = ApplicationData["status"];
@@ -162,6 +164,7 @@ export function ApplicationForm(props: ApplicationFormProps) {
     deposit: props.deposit,
   };
 
+  const router = useRouter();
   const [data, setDados] = useState<ApplicationData>(initialValue);
   const [status, setStatus] = useState<Status>("idle");
   const [semAssinatura, setSemAssinatura] = useState(false);
@@ -402,10 +405,25 @@ export function ApplicationForm(props: ApplicationFormProps) {
   const canSubmit =
     !!data.depositAcknowledged && !!data.signatureImage && token !== "";
 
+  function handleBack() {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }
   return (
     <main className="flex flex-col gap-5 py-5 sm:px-20 px-7">
-      <header className="flex items-center justify-center">
-        <h1 className="text-2xl font-bold">Application to Rent</h1>
+      <header className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="inline-flex items-center gap-1 self-start text-sm font-bold text-[#0ABDAD] underline-offset-4 hover:underline cursor-pointer"
+        >
+          <IoMdArrowRoundBack />
+          Back
+        </button>
+        <h1 className="text-center text-2xl font-bold">Application to Rent</h1>
       </header>
 
       <form key={formKey} onSubmit={send} className="flex flex-col gap-8">
